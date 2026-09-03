@@ -1,29 +1,170 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-        <title>AI Chat</title>
-
-        <link rel="stylesheet" href="style.css" />
-    </head>
-
-    <body>
-        <div class="container">
-            <h1>AI Chat</h1>
-
-            <div id="chat">
-                <!-- Messages will appear here -->
-            </div>
-
-            <div class="input-area">
-                <input type="text" id="prompt" placeholder="Ask something..." />
-
-                <button id="sendBtn">Send</button>
-            </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Assistant</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="dark-theme">
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M12 2a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2V4a2 2 0 0 1 2-2z"
+              ></path>
+              <circle cx="9" cy="11" r="1"></circle>
+              <circle cx="15" cy="11" r="1"></circle>
+              <path d="M10 15h4"></path>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h2>AI Assistant</h2>
+            <p>Your intelligent companion</p>
+          </div>
         </div>
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <script src="script.js"></script>
-    </body>
+
+        <button id="newChatBtn" class="new-chat-btn">
+          <span>+</span> New Chat
+        </button>
+
+       <div class="history-container">
+  <div class="history-group">
+    <span class="group-label">Today</span>
+    <ul class="chat-list" id="todayList">
+      <li class="chat-item active" data-chat-id="chat-js">
+        <span class="chat-icon">💬</span>
+        <span class="title">What is JavaScript?</span>
+        <span class="time">10:30 AM</span>
+      </li>
+      <li class="chat-item" data-chat-id="chat-flexbox">
+        <span class="chat-icon">💬</span>
+        <span class="title">Explain CSS Flexbox</span>
+        <span class="time">10:20 AM</span>
+      </li>
+      <li class="chat-item" data-chat-id="chat-api">
+        <span class="chat-icon">💬</span>
+        <span class="title">How do APIs work?</span>
+        <span class="time">9:45 AM</span>
+      </li>
+    </ul>
+
+          <div class="history-group">
+    <span class="group-label">Yesterday</span>
+    <ul class="chat-list" id="yesterdayList">
+      <li class="chat-item" data-chat-id="chat-html">
+        <span class="chat-icon">💬</span>
+        <span class="title">What is HTML?</span>
+        <span class="time">Yesterday</span>
+      </li>
+      <li class="chat-item" data-chat-id="chat-var">
+        <span class="chat-icon">💬</span>
+        <span class="title">Difference between var...</span>
+        <span class="time">Yesterday</span>
+      </li>
+      <li class="chat-item" data-chat-id="chat-internet">
+        <span class="chat-icon">💬</span>
+        <span class="title">How does internet work?</span>
+        <span class="time">Yesterday</span>
+      </li>
+    </ul>
+  </div>
+</div>
+        <div class="sidebar-footer">
+          <button id="clearConversationsBtn" class="footer-btn text-danger">
+            <span>🗑</span> Clear Conversations
+          </button>
+          <div class="theme-toggle">
+            <span>🌙 Dark Mode</span>
+            <label class="switch">
+              <input type="checkbox" id="themeSwitch" checked />
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <main class="chat-main">
+        <header class="chat-header">
+          <h3 id="currentChatTitle">What is JavaScript?</h3>
+          <button id="clearChatBtn" class="clear-chat-btn">
+            <span>🗑</span> Clear Chat
+          </button>
+        </header>
+
+        <div class="chat-box" id="chat">
+          <div class="message-wrapper user-wrapper">
+            <div class="message user">
+              <div class="message-content">What is JavaScript?</div>
+              <div class="message-meta">10:30 AM ✓✓</div>
+            </div>
+          </div>
+          <div class="message-wrapper ai-wrapper">
+            <div class="avatar">🤖</div>
+            <div class="message ai">
+              <div class="message-content">
+                JavaScript is a programming language that allows you to
+                implement complex features on web pages. It makes web pages
+                interactive by adding behaviors that respond to user actions,
+                such as clicks, form submissions, and dynamic content updates.
+              </div>
+              <div class="message-meta">10:30 AM</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Box -->
+        <div class="input-container">
+          <!-- Emoji Picker Popup -->
+          <div id="emojiPicker" class="emoji-picker hidden">
+            <div class="emoji-grid">
+              <span>😀</span><span>😃</span><span>😄</span><span>😁</span
+              ><span>😆</span><span>😅</span><span>😂</span><span>🤣</span>
+              <span>😊</span><span>😇</span><span>🙂</span><span>🙃</span
+              ><span>😉</span><span>😌</span><span>😍</span><span>🥰</span>
+              <span>😘</span><span>😗</span><span>😙</span><span>😚</span
+              ><span>😋</span><span>😛</span><span>😝</span><span>😜</span>
+              <span>🤪</span><span>🤨</span><span>🧐</span><span>🤓</span
+              ><span>😎</span><span>🤩</span><span>🥳</span><span>😏</span>
+              <span>😒</span><span>😞</span><span>😔</span><span>😟</span
+              ><span>😕</span><span>🙁</span><span>☹️</span><span>😣</span>
+              <span>😖</span><span>😫</span><span>😩</span><span>🥺</span
+              ><span>😢</span><span>😭</span><span>😤</span><span>😠</span>
+              <span>😡</span><span>🤬</span><span>🤯</span><span>😳</span
+              ><span>🥵</span><span>🥶</span><span>😱</span><span>📁</span>
+              <span>👍</span><span>👎</span><span>👏</span><span>🙌</span
+              ><span>🎉</span><span>🔥</span><span>💡</span><span>🤖</span>
+            </div>
+          </div>
+
+          <div class="input-wrapper">
+            <textarea
+              id="prompt"
+              placeholder="Type your message here..."
+              rows="1"
+            ></textarea>
+            <div class="input-actions-left">
+              <button class="icon-btn" title="Attach file">📎</button>
+              <button class="icon-btn" id="emojiBtn" title="Emoji">😊</button>
+            </div>
+            <button id="sendBtn" class="send-btn"><span>✈</span> Send</button>
+          </div>
+          <div class="disclaimer">AI responses may not always be accurate.</div>
+        </div>
+      </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="script.js"></script>
+  </body>
 </html>
