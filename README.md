@@ -14,7 +14,6 @@ In this final project, you will work with the **JavaScript AI Chat Application**
 The instructor has already placed the project on GitHub.
 
 Your job is to:
-
 1. Get your own copy of the project.
 2. Run and understand it.
 3. Create your own branch.
