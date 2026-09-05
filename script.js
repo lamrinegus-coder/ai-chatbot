@@ -263,12 +263,10 @@ document.addEventListener("DOMContentLoaded", () => {
     scrollToBottom();
 
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ contents: conversation }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage }),
       });
 
       const data = await response.json();
