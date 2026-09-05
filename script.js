@@ -17,12 +17,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const emojiPicker = document.getElementById("emojiPicker");
   const attachBtn = document.querySelector('.icon-btn[title="Attach file"]');
 
-  // 2. API Configuration
+  // Select or Create Character Counter Element
+  // Select or Create Character Counter Element
+  let charCounter = document.getElementById("charCounter");
+  if (!charCounter && promptInput && promptInput.parentElement) {
+    charCounter = document.createElement("span");
+    charCounter.id = "charCounter";
+    charCounter.innerText = "0 chars";
+    promptInput.parentElement.appendChild(charCounter);
+  }
 
-  const API_KEY = "YOUR_API_KEY_HERE";
-  const API_URL =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
-
+  // Active production model endpoint
+  const API_URL = `/api/chat.js`;
   let conversation = [];
   let currentChatId = null;
 
@@ -61,51 +67,13 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       ],
     },
-    "chat-html": {
-      title: "What is HTML?",
-      messages: [
-        { role: "user", text: "What is HTML?", time: "Yesterday" },
-        {
-          role: "model",
-          text: "HTML (HyperText Markup Language) is the standard markup language used to structure and present content on the World Wide Web.",
-          time: "Yesterday",
-        },
-      ],
-    },
-    "chat-var": {
-      title: "Difference between var...",
-      messages: [
-        {
-          role: "user",
-          text: "Difference between var, let, and const",
-          time: "Yesterday",
-        },
-        {
-          role: "model",
-          text: "var is function-scoped and hoists. let and const are block-scoped. const cannot be reassigned after declaration.",
-          time: "Yesterday",
-        },
-      ],
-    },
-    "chat-internet": {
-      title: "How does internet work?",
-      messages: [
-        { role: "user", text: "How does internet work?", time: "Yesterday" },
-        {
-          role: "model",
-          text: "The internet is a global network of connected computers that communicate with each other using standardized protocols like TCP/IP and HTTP.",
-          time: "Yesterday",
-        },
-      ],
-    },
   };
 
-  // Load saved database from localStorage or fall back to default mockup
   const savedData = localStorage.getItem("ai_chat_history");
   const chatHistoryDatabase = savedData
     ? JSON.parse(savedData)
     : defaultHistory;
-  // Helper Functions
+
   function saveToLocalStorage() {
     localStorage.setItem(
       "ai_chat_history",
@@ -122,12 +90,28 @@ document.addEventListener("DOMContentLoaded", () => {
     if (chat) chat.scrollTop = chat.scrollHeight;
   }
 
-  // New version using Marked:
   function formatText(text) {
     if (window.marked) {
       return marked.parse(text);
     }
     return text.replace(/\n/g, "<br>");
+  }
+  // Typing Effect Animation for AI Responses
+  function typeMessage(element, text, speed = 15, onComplete = null) {
+    let index = 0;
+    element.innerHTML = "";
+    const timer = setInterval(() => {
+      if (index < text.length) {
+        element.innerHTML +=
+          text.charAt(index) === "\n" ? "<br>" : text.charAt(index);
+        index++;
+        scrollToBottom();
+      } else {
+        clearInterval(timer);
+        element.innerHTML = formatText(text);
+        if (onComplete) onComplete();
+      }
+    }, speed);
   }
 
   // Load Conversation into DOM
@@ -143,23 +127,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chatData.messages.forEach((msg) => {
       if (msg.role === "user") {
-        chat.innerHTML += `
-                    <div class="message-wrapper user-wrapper">
-                        <div class="message user">
-                            <div class="message-content">${msg.text}</div>
-                            <div class="message-meta">${msg.time} ✓✓</div>
-                        </div>
-                    </div>`;
+        chat.innerHTML += ` 
+          <div class="message-wrapper user-wrapper">
+            <div class="message user">
+              <div class="message-content">${msg.text}</div>
+              <div class="message-meta">${msg.time} ✓✓</div>
+            </div>
+          </div>`;
         conversation.push({ role: "user", parts: [{ text: msg.text }] });
       } else {
         chat.innerHTML += ` 
-                    <div class="message-wrapper ai-wrapper">
-                        <div class="avatar">🤖</div>
-                        <div class="message ai">
-                            <div class="message-content">${formatText(msg.text)}</div>
-                            <div class="message-meta">${msg.time}</div>
-                        </div>
-                    </div>`;
+          <div class="message-wrapper ai-wrapper">
+            <div class="avatar">🤖</div>
+            <div class="message ai">
+              <div class="message-content">${formatText(msg.text)}</div>
+              <div class="message-meta">${msg.time}</div>
+            </div>
+          </div>`;
         conversation.push({ role: "model", parts: [{ text: msg.text }] });
       }
     });
@@ -167,15 +151,12 @@ document.addEventListener("DOMContentLoaded", () => {
     scrollToBottom();
   }
 
-  // Render Saved Sidebar Items on Page Load
   function renderSavedSidebar() {
     const todayList = document.getElementById("todayList");
     if (!todayList) return;
 
-    // Render any dynamic chats saved in memory that aren't in default hardcoded HTML
     Object.keys(chatHistoryDatabase).forEach((chatId) => {
       if (chatId.startsWith("chat-1")) {
-        // Timestamp-based IDs created dynamically
         const chatData = chatHistoryDatabase[chatId];
         const existingItem = document.querySelector(
           `[data-chat-id="${chatId}"]`,
@@ -184,11 +165,10 @@ document.addEventListener("DOMContentLoaded", () => {
           const newLi = document.createElement("li");
           newLi.className = "chat-item";
           newLi.setAttribute("data-chat-id", chatId);
-          newLi.innerHTML = `
-                        <span class="chat-icon">💬</span>
-                        <span class="title">${chatData.title}</span>
-                        <span class="time">${chatData.messages[0]?.time || "Today"}</span>
-                    `;
+          newLi.innerHTML = ` 
+            <span class="chat-icon">💬</span>
+            <span class="title">${chatData.title}</span>
+            <span class="time">${chatData.messages[0]?.time || "Today"}</span>`;
           todayList.prepend(newLi);
         }
       }
@@ -197,6 +177,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderSavedSidebar();
 
+  // Character Counter Event
+  if (promptInput) {
+    promptInput.addEventListener("input", () => {
+      const count = promptInput.value.length;
+      if (charCounter) {
+        charCounter.innerText = `${count} chars`;
+      }
+    });
+  }
+
   // 4. Send Message Function
   async function sendMessage() {
     const prompt = promptInput.value.trim();
@@ -204,7 +194,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const currentTime = getCurrentTime();
 
-    // Register new conversation in history if starting fresh
     if (conversation.length === 0) {
       if (currentChatTitle) currentChatTitle.innerText = prompt;
 
@@ -223,27 +212,25 @@ document.addEventListener("DOMContentLoaded", () => {
         newLi.className = "chat-item active";
         newLi.setAttribute("data-chat-id", currentChatId);
         newLi.innerHTML = ` 
-                    <span class="chat-icon">💬</span>
-                    <span class="title">${prompt}</span>
-                    <span class="time">${currentTime}</span>`;
-
+          <span class="chat-icon">💬</span>
+          <span class="title">${prompt}</span>
+          <span class="time">${currentTime}</span>`;
         todayList.prepend(newLi);
       }
     }
 
     // Render User Message
     chat.innerHTML += `
-            <div class="message-wrapper user-wrapper">
-                <div class="message user">
-                    <div class="message-content">${prompt}</div>
-                    <div class="message-meta">${currentTime} ✓✓</div>
-                </div>
-            </div>`;
-
+      <div class="message-wrapper user-wrapper">
+        <div class="message user">
+          <div class="message-content">${prompt}</div>
+          <div class="message-meta">${currentTime} ✓✓</div>
+        </div>
+      </div>`;
     promptInput.value = "";
+    if (charCounter) charCounter.innerText = "0 chars";
     scrollToBottom();
 
-    // Append to memory arrays and persist
     conversation.push({ role: "user", parts: [{ text: prompt }] });
     if (currentChatId && chatHistoryDatabase[currentChatId]) {
       chatHistoryDatabase[currentChatId].messages.push({
@@ -257,13 +244,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Loading Indicator
     const loadingId = "loading-" + Date.now();
     chat.innerHTML += ` 
-            <div class="message-wrapper ai-wrapper" id="${loadingId}">
-                <div class="avatar">🤖</div>
-                <div class="message ai">
-                    <div class="message-content">Thinking...</div>
-                    <div class="message-meta">${currentTime}</div>
-                </div>
-            </div>`;
+      <div class="message-wrapper ai-wrapper" id="${loadingId}">
+        <div class="avatar">🤖</div>
+        <div class="message ai">
+          <div class="message-content">Thinking...</div>
+          <div class="message-meta">${currentTime}</div>
+        </div>
+      </div>`;
     scrollToBottom();
 
     try {
@@ -271,7 +258,6 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": API_KEY,
         },
         body: JSON.stringify({ contents: conversation }),
       });
@@ -285,24 +271,30 @@ document.addEventListener("DOMContentLoaded", () => {
         const aiMessage = data.candidates[0].content.parts[0].text;
         const responseTime = getCurrentTime();
 
-        chat.innerHTML += `
-                    <div class="message-wrapper ai-wrapper">
-                        <div class="avatar">🤖</div>
-                        <div class="message ai">
-                            <div class="message-content">${formatText(aiMessage)}</div>
-                            <div class="message-meta">${responseTime}</div>
-                        </div>
-                    </div>`;
+        const messageWrapper = document.createElement("div");
+        messageWrapper.className = "message-wrapper ai-wrapper";
+        messageWrapper.innerHTML = `
+          <div class="avatar">🤖</div>
+          <div class="message ai">
+            <div class="message-content"></div>
+            <div class="message-meta">${responseTime}</div>
+          </div>`;
+        chat.appendChild(messageWrapper);
 
-        conversation.push({ role: "model", parts: [{ text: aiMessage }] });
-        if (currentChatId && chatHistoryDatabase[currentChatId]) {
-          chatHistoryDatabase[currentChatId].messages.push({
-            role: "model",
-            text: aiMessage,
-            time: responseTime,
-          });
-          saveToLocalStorage();
-        }
+        const contentElem = messageWrapper.querySelector(".message-content");
+
+        // Trigger Typing Animation
+        typeMessage(contentElem, aiMessage, 15, () => {
+          conversation.push({ role: "model", parts: [{ text: aiMessage }] });
+          if (currentChatId && chatHistoryDatabase[currentChatId]) {
+            chatHistoryDatabase[currentChatId].messages.push({
+              role: "model",
+              text: aiMessage,
+              time: responseTime,
+            });
+            saveToLocalStorage();
+          }
+        });
       } else if (data.error) {
         throw new Error(data.error.message || "API error occurred");
       } else {
@@ -315,13 +307,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (loadingElement) loadingElement.remove();
 
       chat.innerHTML += `
-            <div class="message-wrapper ai-wrapper">
-                    <div class="avatar">🤖</div>
-                    <div class="message ai">
-                        <div class="message-content">Error: ${error.message}</div>
-                        <div class="message-meta">${getCurrentTime()}</div>
-                    </div>
-                </div>`;
+        <div class="message-wrapper ai-wrapper">
+          <div class="avatar">🤖</div>
+          <div class="message ai">
+            <div class="message-content">Error: ${error.message}</div>
+            <div class="message-meta">${getCurrentTime()}</div>
+          </div>
+        </div>`;
       scrollToBottom();
     }
   }
@@ -343,7 +335,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Dynamic Sidebar Click Selection
   document.addEventListener("click", (e) => {
     const chatItem = e.target.closest(".chat-item");
     if (chatItem) {
@@ -359,17 +350,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Emoji Picker Logic
   if (emojiBtn && emojiPicker) {
     emojiBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       emojiPicker.classList.toggle("hidden");
     });
-
     emojiPicker.addEventListener("click", (e) => {
       if (e.target.tagName === "SPAN") {
         promptInput.value += e.target.innerText;
         promptInput.focus();
+        promptInput.dispatchEvent(new Event("input"));
       }
     });
 
@@ -380,7 +370,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // File Attachment Logic
   if (attachBtn) {
     attachBtn.addEventListener("click", () => {
       const fileInput = document.createElement("input");
@@ -388,15 +377,15 @@ document.addEventListener("DOMContentLoaded", () => {
       fileInput.onchange = (e) => {
         const file = e.target.files[0];
         if (file) {
-          promptInput.value += `[Attached: ${file.name}] `;
+          promptInput.value += `[Attached: ${file.name}]`;
           promptInput.focus();
+          promptInput.dispatchEvent(new Event("input"));
         }
       };
       fileInput.click();
     });
   }
 
-  // Clear Current Chat Window
   if (clearChatBtn) {
     clearChatBtn.addEventListener("click", () => {
       chat.innerHTML = "";
@@ -408,7 +397,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Clear All Conversations
   if (clearConversationsBtn) {
     clearConversationsBtn.addEventListener("click", () => {
       localStorage.removeItem("ai_chat_history");
@@ -421,7 +409,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // New Chat Button Action
   if (newChatBtn) {
     newChatBtn.addEventListener("click", () => {
       chat.innerHTML = "";
@@ -434,7 +421,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Theme Switch
   if (themeSwitch) {
     themeSwitch.addEventListener("change", (e) => {
       if (e.target.checked) {
