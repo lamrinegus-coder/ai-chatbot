@@ -1,7 +1,7 @@
 const https = require("https");
 
 module.exports = async (req, res) => {
-  // 1. CORS Headers
+  // CORS setup
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -14,15 +14,15 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // 2. Fetch API Key from Vercel Environment Variables
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY;
+  // Use GROQ API key if available, otherwise fall back to GEMINI
+  const apiKey = process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res
       .status(500)
-      .json({ error: "API Key is missing in Vercel settings." });
+      .json({ error: "API key missing in Vercel Environment Variables." });
   }
 
-  // 3. Extract the prompt text safely from the client request
+  // Extract prompt safely from request body
   let userText = "Hello";
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
@@ -35,30 +35,40 @@ module.exports = async (req, res) => {
       userText = body.prompt;
     }
   } catch (err) {
-    console.error("Payload parse error:", err);
+    console.error("Payload error:", err);
   }
 
-  // 4. Build Gemini API Payload
-  const payload = JSON.stringify({
-    contents: [
-      {
-        parts: [{ text: userText }],
-      },
-    ],
-  });
+  // Determine standard model provider based on key prefix
+  const isGemini = apiKey.startsWith("AIza");
 
-  // 5. Google Generative Language v1beta Endpoint Configuration
-  const options = {
-    hostname: "generativelanguage.googleapis.com",
-    path: `/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey.trim()}`,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(payload),
-    },
-  };
+  const payload = isGemini
+    ? JSON.stringify({ contents: [{ parts: [{ text: userText }] }] })
+    : JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: userText }],
+      });
 
-  // 6. Send HTTPS Request
+  const options = isGemini
+    ? {
+        hostname: "generativelanguage.googleapis.com",
+        path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+        },
+      }
+    : {
+        hostname: "api.groq.com",
+        path: "/openai/v1/chat/completions",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey.trim()}`,
+          "Content-Length": Buffer.byteLength(payload),
+        },
+      };
+
   const apiReq = https.request(options, (apiRes) => {
     let responseData = "";
 
@@ -73,15 +83,25 @@ module.exports = async (req, res) => {
         if (parsed.error) {
           return res
             .status(500)
-            .json({ error: parsed.error.message || "Gemini API Error" });
+            .json({ error: parsed.error.message || "API call failed" });
         }
 
-        // Return standard response structure back to frontend (script.js)
-        return res.status(200).json(parsed);
+        // Return standardized payload format expected by script.js UI
+        const aiMessage = isGemini
+          ? parsed.candidates?.[0]?.content?.parts?.[0]?.text
+          : parsed.choices?.[0]?.message?.content;
+
+        return res.status(200).json({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: aiMessage || "No text received" }],
+              },
+            },
+          ],
+        });
       } catch (err) {
-        return res
-          .status(500)
-          .json({ error: "Failed to parse Gemini API response." });
+        return res.status(500).json({ error: "Failed to parse AI response" });
       }
     });
   });
