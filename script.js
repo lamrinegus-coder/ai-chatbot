@@ -27,12 +27,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 2. Read API Key from config.js and build Google Gemini API Endpoint
+  // Check config.js first locally; if missing (on Vercel), fall back to direct key string
   const API_KEY =
     typeof CONFIG !== "undefined" && CONFIG.GEMINI_API_KEY
       ? CONFIG.GEMINI_API_KEY
-      : "";
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${API_KEY.trim()}`;
+      : "PASTE_YOUR_GEMINI_API_KEY_HERE";
 
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${API_KEY.trim()}`;
   let conversation = [];
   let currentChatId = null;
 
