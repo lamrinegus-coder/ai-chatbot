@@ -3,25 +3,49 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Read key securely from Vercel Environment Variables
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY; // or process.env.GROQ_API_KEY
   if (!apiKey) {
     return res.status(500).json({ error: "API key not configured on Vercel" });
   }
 
   try {
+    // Transform Gemini format contents into standard message array
+    const userPrompt =
+      req.body.contents?.[req.body.contents.length - 1]?.parts?.[0]?.text || "";
+
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req.body),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: userPrompt }],
+        }),
       },
     );
 
     const data = await response.json();
-    return res.status(200).json(data);
+
+    if (data.error) {
+      return res.status(500).json({ error: data.error.message });
+    }
+
+    // Return response formatted for your existing script.js handler
+    const aiText = data.choices[0].message.content;
+    return res.status(200).json({
+      candidates: [
+        {
+          content: {
+            parts: [{ text: aiText }],
+          },
+        },
+      ],
+    });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to contact Gemini API" });
+    return res.status(500).json({ error: "Failed to contact Groq API" });
   }
 }
