@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const attachBtn = document.querySelector('.icon-btn[title="Attach file"]');
 
   // Select or Create Character Counter Element
-  // Select or Create Character Counter Element
   let charCounter = document.getElementById("charCounter");
   if (!charCounter && promptInput && promptInput.parentElement) {
     charCounter = document.createElement("span");
@@ -27,8 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
     promptInput.parentElement.appendChild(charCounter);
   }
 
-  // Active production model endpoint
-  const API_URL = `/api/chat.js`;
+  // 2. Read API Key from config.js and build Google Gemini API Endpoint
+  const API_KEY =
+    typeof CONFIG !== "undefined" && CONFIG.GEMINI_API_KEY
+      ? CONFIG.GEMINI_API_KEY
+      : "";
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${API_KEY.trim()}`;
+
   let conversation = [];
   let currentChatId = null;
 
@@ -92,10 +96,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function formatText(text) {
     if (window.marked) {
-      return marked.parse(text);
+      return window.marked.parse(text);
     }
     return text.replace(/\n/g, "<br>");
   }
+
   // Typing Effect Animation for AI Responses
   function typeMessage(element, text, speed = 15, onComplete = null) {
     let index = 0;
@@ -136,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>`;
         conversation.push({ role: "user", parts: [{ text: msg.text }] });
       } else {
-        chat.innerHTML += ` 
+        chat.innerHTML += `
           <div class="message-wrapper ai-wrapper">
             <div class="avatar">🤖</div>
             <div class="message ai">
@@ -156,21 +161,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!todayList) return;
 
     Object.keys(chatHistoryDatabase).forEach((chatId) => {
-      if (chatId.startsWith("chat-1")) {
-        const chatData = chatHistoryDatabase[chatId];
-        const existingItem = document.querySelector(
-          `[data-chat-id="${chatId}"]`,
-        );
-        if (!existingItem) {
-          const newLi = document.createElement("li");
-          newLi.className = "chat-item";
-          newLi.setAttribute("data-chat-id", chatId);
-          newLi.innerHTML = ` 
-            <span class="chat-icon">💬</span>
-            <span class="title">${chatData.title}</span>
-            <span class="time">${chatData.messages[0]?.time || "Today"}</span>`;
-          todayList.prepend(newLi);
-        }
+      const chatData = chatHistoryDatabase[chatId];
+      const existingItem = document.querySelector(`[data-chat-id="${chatId}"]`);
+      if (!existingItem) {
+        const newLi = document.createElement("li");
+        newLi.className = "chat-item";
+        newLi.setAttribute("data-chat-id", chatId);
+        newLi.innerHTML = ` 
+          <span class="chat-icon">💬</span>
+          <span class="title">${chatData.title}</span>
+          <span class="time">${chatData.messages[0]?.time || "Today"}</span>`;
+        todayList.prepend(newLi);
       }
     });
   }
@@ -182,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
     promptInput.addEventListener("input", () => {
       const count = promptInput.value.length;
       if (charCounter) {
-        charCounter.innerText = `${count} chars`;
+        charCounter.innerText = ` ${count} chars`;
       }
     });
   }
@@ -191,6 +192,13 @@ document.addEventListener("DOMContentLoaded", () => {
   async function sendMessage() {
     const prompt = promptInput.value.trim();
     if (prompt === "") return;
+
+    if (!API_KEY) {
+      alert(
+        "API Key missing! Please check that config.js exists and defines GEMINI_API_KEY.",
+      );
+      return;
+    }
 
     const currentTime = getCurrentTime();
 
@@ -211,7 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const newLi = document.createElement("li");
         newLi.className = "chat-item active";
         newLi.setAttribute("data-chat-id", currentChatId);
-        newLi.innerHTML = ` 
+        newLi.innerHTML = `
           <span class="chat-icon">💬</span>
           <span class="title">${prompt}</span>
           <span class="time">${currentTime}</span>`;
@@ -222,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Render User Message
     chat.innerHTML += `
       <div class="message-wrapper user-wrapper">
-        <div class="message user">
+      <div class="message user">
           <div class="message-content">${prompt}</div>
           <div class="message-meta">${currentTime} ✓✓</div>
         </div>
@@ -243,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Loading Indicator
     const loadingId = "loading-" + Date.now();
-    chat.innerHTML += ` 
+    chat.innerHTML += `
       <div class="message-wrapper ai-wrapper" id="${loadingId}">
         <div class="avatar">🤖</div>
         <div class="message ai">
@@ -306,7 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const loadingElement = document.getElementById(loadingId);
       if (loadingElement) loadingElement.remove();
 
-      chat.innerHTML += `
+      chat.innerHTML += ` 
         <div class="message-wrapper ai-wrapper">
           <div class="avatar">🤖</div>
           <div class="message ai">
@@ -349,7 +357,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   });
-
   if (emojiBtn && emojiPicker) {
     emojiBtn.addEventListener("click", (e) => {
       e.stopPropagation();
