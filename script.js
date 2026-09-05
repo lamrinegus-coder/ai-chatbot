@@ -194,13 +194,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const prompt = promptInput.value.trim();
     if (prompt === "") return;
 
-    if (!API_KEY) {
-      alert(
-        "API Key missing! Please check that config.js exists and defines GEMINI_API_KEY.",
-      );
-      return;
-    }
-
     const currentTime = getCurrentTime();
 
     if (conversation.length === 0) {
@@ -266,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ message: prompt }),
       });
 
       const data = await response.json();
